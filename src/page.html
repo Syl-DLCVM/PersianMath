@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FA-RTL — Phase 1 prototype</title>
+<style>
+  @font-face { font-family: 'FA Naskh'; src: url('fonts/naskh-400.woff2') format('woff2'); font-weight: 400; font-display: block; }
+  @font-face { font-family: 'FA Naskh'; src: url('fonts/naskh-600.woff2') format('woff2'); font-weight: 600; font-display: block; }
+  @font-face { font-family: 'FA Digit'; src: url('fonts/vazir-600.woff2') format('woff2'); font-weight: 600; font-display: block; }
+  @font-face { font-family: 'FA Math';  src: url('fonts/math-400.woff2')  format('woff2'); font-weight: 400; font-display: block; }
+
+  :root {
+    --paper: #f7f3ea; --card: #fffdf8; --ink: #1c1a17; --muted: #6b655c; --line: #e2dbcc;
+    --digit: #0b6b6a; --accent: #8a3b2a; --tag: #efe8d8;
+    --naskh: 'FA Naskh', 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', 'Geeza Pro', serif;
+    --sans: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --serif: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { margin: 0; color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.55; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 40px 24px 80px; }
+  header.top { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: end; border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 20px; }
+  header.top .fa { direction: rtl; text-align: right; font-family: var(--naskh); }
+  header.top h1 { margin: 0; font-weight: 600; font-size: 34px; line-height: 1.3; }
+  header.top .en h1 { font-family: var(--serif); font-weight: 400; font-size: 30px; letter-spacing: -0.01em; }
+  header.top p { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
+  .intro { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0 0 18px; }
+  .intro .fa { direction: rtl; text-align: right; font-family: var(--naskh); font-size: 18px; }
+  .intro p { margin: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 10px; margin: 0 0 28px; }
+  .legend span { background: var(--tag); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-family: var(--sans); font-size: 13px; color: var(--ink); }
+  .legend span b { color: var(--digit); font-weight: 600; }
+  .controls { display: flex; gap: 18px; align-items: center; font-family: var(--sans); font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .controls select { font: inherit; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+
+  article.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px 14px; margin: 0 0 18px; box-shadow: 0 1px 0 rgba(0,0,0,0.02); }
+  article.card h2 { margin: 0 0 4px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; font-size: 20px; font-weight: 400; }
+  article.card h2 .fa { font-family: var(--naskh); direction: rtl; font-weight: 600; font-size: 22px; }
+  article.card h2 .en { font-family: var(--serif); color: var(--muted); font-size: 17px; font-style: italic; }
+  article.card .shows { margin: 0 0 12px; font-family: var(--sans); font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 16px; }
+  article.card .shows .fa { direction: rtl; font-family: var(--naskh); font-size: 14px; }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pane { position: relative; border: 1px dashed var(--line); border-radius: 10px; padding: 26px 16px 14px; min-height: 120px; display: flex; align-items: center; overflow-x: auto; }
+  .pane.intl { justify-content: flex-start; }
+  .pane.fa { justify-content: flex-end; order: 2; }
+  .pane .tag { position: absolute; top: 8px; font-family: var(--sans); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .pane.intl .tag { left: 12px; } .pane.fa .tag { right: 12px; }
+  .pane svg { max-width: 100%; height: auto; display: block; }
+  details { margin-top: 10px; font-family: var(--sans); font-size: 12px; color: var(--muted); }
+  details summary { cursor: pointer; }
+  details pre { white-space: pre-wrap; word-break: break-all; background: var(--paper); border-radius: 8px; padding: 10px 12px; margin: 8px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--ink); }
+  footer.notes { margin-top: 34px; border-top: 1px solid var(--line); padding-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: 15px; }
+  footer.notes h3 { margin: 0 0 8px; font-family: var(--sans); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  footer.notes ul { margin: 0; padding-left: 18px; }
+  footer.notes li { margin: 0 0 6px; }
+  footer.notes code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--tag); padding: 1px 5px; border-radius: 4px; }
+  .fa-inline { font-family: var(--naskh); }
+  @media (max-width: 760px) {
+    header.top, .intro, .panes, footer.notes { grid-template-columns: 1fr; }
+    .pane.fa { order: 0; }
+    header.top h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="en">
+      <h1>FA-RTL · Phase 1 prototype</h1>
+      <p>One semantic tree per formula, two renderers. The right pane is laid out by the FA-RTL rules of the framework (R1–R5, D1–D8); the left pane by the INTL renderer, from the same tree.</p>
+    </div>
+    <div class="fa">
+      <h1>ریاضی‌نویسیِ فارسیِ راست‌به‌چپ — نمونهٔ مرحلهٔ ۱</h1>
+      <p>برای هر فرمول یک درخت معنایی و دو نمایش‌گر. پنجرهٔ راست با قواعد چارچوب چیده شده و پنجرهٔ چپ با نمایش‌گر بین‌المللی، از همان درخت.</p>
+    </div>
+  </header>
+
+  <div class="intro">
+    <p>Nothing on the right is typed as a string. Digit order, mirroring, stretching and script placement are decisions of the renderer; the tree stores values, roles and styles only (L0). Open “tree” under any formula to see the interchange form.</p>
+    <p class="fa">هیچ‌چیز در سمت راست به‌صورت رشته نوشته نشده است. ترتیب رقم‌ها، آینه‌کردن، کشیدگی و جای توان‌ها تصمیم نمایش‌گر است؛ درخت فقط مقدار، نقش و سبک را نگه می‌دارد.</p>
+  </div>
+
+  <div class="legend">
+    <span><b>۱۲۳</b> marked digit face, most significant digit at the right (D4, R2.2)</span>
+    <span>letter-operators <span class="fa-inline">مجـ · تک · حد</span> stretched by kashida (D5)</span>
+    <span>fences and relations mirrored, arrows flipped (R1.2, R1.3, R1.9)</span>
+    <span>scripts at the upper left, radical opening to the right (R1.4, R1.7)</span>
+    <span>styled letters from U+1EE00: looped, double-struck, tailed (D6)</span>
+    <span>hamza as prime, <span class="fa-inline">تف</span> as the differential (R3.6, D5)</span>
+  </div>
+
+  <div class="controls">
+    <label>size <select id="size"><option>24</option><option selected>30</option><option>36</option><option>44</option></select></label>
+    <label><input type="checkbox" id="dbg"> show boxes</label>
+    <span id="status">loading fonts…</span>
+  </div>
+
+  <main id="cards"></main>
+
+  <footer class="notes">
+    <div>
+      <h3>What is real here</h3>
+      <ul>
+        <li>Every layout rule of L1, L2, L3 and L5 that the ten formulas touch, in a ~450-line engine; the INTL pane is the bijection made visible.</li>
+        <li>The fonts ship with the page (Noto Naskh Arabic, Vazirmatn, Noto Sans Math; SIL Open Font License). Looped, double-struck and tailed letters are the actual U+1EE00 code points; the stretch is U+0640 kashida inside a joined token.</li>
+        <li>Numbers are stored once, canonically (<code>1234.56</code>); the Persian pane never stores a reversed string.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>What is simulated or missing</h3>
+      <ul>
+        <li>Ordinary variables are drawn with plain naskh letters; plain-text export would use the isolated forms of the U+1EE00 block.</li>
+        <li>The marked face is a sans digit design in colour, standing in for a dedicated mathematical digit style (D4); the U1 characters do not exist yet, so plain-text export still needs the interim encoding of L2.</li>
+        <li><span class="fa-inline">پ</span> (π) has no looped code point: it renders through the declared fallback of D6, a naskh letter with a loop mark.</li>
+        <li>No editing yet; that is Phase 3. Spacing and sizes are first approximations, not a finished math typesetting standard.</li>
+      </ul>
+    </div>
+  </footer>
+</div>
+
+<script>{{ENGINE}}</script>
+<script>{{FORMULAS}}</script>
+<script>
+(function () {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const cache = new Map();
+  function measure(text, font, size) {
+    const key = font.family + '|' + (font.weight || 400) + '|' + size + '|' + text;
+    if (cache.has(key)) return cache.get(key);
+    ctx.font = (font.weight || 400) + ' ' + size + 'px ' + font.family;
+    const m = ctx.measureText(text);
+    const r = {
+      w: m.width,
+      a: typeof m.actualBoundingBoxAscent === 'number' ? m.actualBoundingBoxAscent : size * 0.75,
+      d: typeof m.actualBoundingBoxDescent === 'number' ? m.actualBoundingBoxDescent : size * 0.22
+    };
+    cache.set(key, r);
+    return r;
+  }
+  const engine = FARTL.createEngine(measure, {
+    fonts: {
+      naskh: { family: "'FA Naskh', 'Noto Naskh Arabic', 'Amiri', serif" },
+      digit: { family: "'FA Digit', 'Vazirmatn', 'Noto Sans Arabic', sans-serif", weight: 600 },
+      math: { family: "'FA Math', 'Noto Sans Math', 'STIX Two Math', 'Cambria Math', serif" },
+      text: { family: "'FA Math', 'Noto Sans Math', 'STIX Two Math', serif" }
+    }
+  });
+  const cards = document.getElementById('cards');
+  const sizeSel = document.getElementById('size'), dbgBox = document.getElementById('dbg'), status = document.getElementById('status');
+
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function build() {
+    cards.innerHTML = '';
+    FARTL_FORMULAS.forEach(f => {
+      const art = document.createElement('article'); art.className = 'card'; art.id = f.id;
+      art.innerHTML =
+        '<h2><span class="en">' + esc(f.name.en) + '</span><span class="fa">' + esc(f.name.fa) + '</span></h2>' +
+        '<p class="shows"><span class="en">' + esc(f.shows.en) + '</span><span class="fa">' + esc(f.shows.fa) + '</span></p>' +
+        '<div class="panes"><div class="pane intl"><span class="tag">INTL</span><div class="svg"></div></div>' +
+        '<div class="pane fa"><span class="tag">FA-RTL</span><div class="svg"></div></div></div>' +
+        '<details><summary>tree</summary><pre>' + esc(JSON.stringify(f.tree)) + '</pre></details>';
+      cards.appendChild(art);
+    });
+  }
+  function renderAll() {
+    cache.clear();
+    const size = parseInt(sizeSel.value, 10), dbg = dbgBox.checked;
+    FARTL_FORMULAS.forEach(f => {
+      const art = document.getElementById(f.id);
+      try {
+        art.querySelector('.pane.fa .svg').innerHTML = engine.render(f.tree, 'rtl', { size, dbg }).svg;
+        art.querySelector('.pane.intl .svg').innerHTML = engine.render(f.tree, 'ltr', { size, dbg }).svg;
+      } catch (e) {
+        art.querySelector('.pane.fa .svg').textContent = 'error: ' + e.message;
+      }
+    });
+    status.textContent = FARTL_FORMULAS.length + ' formulas × 2 renderers';
+  }
+  build();
+  sizeSel.addEventListener('change', renderAll);
+  dbgBox.addEventListener('change', renderAll);
+  const faces = ["400 30px 'FA Naskh'", "600 30px 'FA Naskh'", "600 30px 'FA Digit'", "400 30px 'FA Math'"];
+  Promise.all(faces.map(f => document.fonts.load(f).catch(() => null)))
+    .then(() => document.fonts.ready)
+    .then(renderAll, renderAll);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "fa-rtl",
+  "version": "0.1.0",
+  "description": "FA-RTL: right-to-left Persian mathematical notation — Phase 1 layout engine and demo page",
+  "scripts": {
+    "test": "node test.js",
+    "build": "python3 build.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fontsource/noto-naskh-arabic": "^5.3.0",
+    "@fontsource/noto-sans-math": "^5.3.0",
+    "@fontsource/vazirmatn": "^5.3.0"
+  },
+  "private": true
+}

@@ -1,0 +1,5 @@
+node_modules/
+out/
+shot*.png
+zoom*.png
+fa_panes.png
