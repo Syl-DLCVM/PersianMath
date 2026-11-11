@@ -11,7 +11,7 @@
   return [
     {
       id: 'quadratic', name: { en: 'Quadratic formula', fa: 'فرمول حل معادلهٔ درجهٔ دوم' },
-      shows: { en: 'fraction, mirrored radical, unary sign, coefficient letters ا ب ج', fa: 'کسر، رادیکال آینه‌شده، علامت یگانی، ضرایب ا ب ج' },
+      shows: { en: 'fraction, mirrored radical, unary sign, coefficient letters آ ب ج', fa: 'کسر، رادیکال آینه‌شده، علامت یگانی، ضرایب آ ب ج' },
       tree: R(V('x'), O('='), F(R(O('-'), V('b'), O('pm'), SQRT(R(SUP(V('b'), N(2)), O('-'), N(4), V('a'), V('c')))), R(N(2), V('a'))))
     },
     {
@@ -26,12 +26,12 @@
     },
     {
       id: 'derivative', name: { en: 'Definition of the derivative', fa: 'تعریف مشتق' },
-      shows: { en: 'hamza as prime, حد stretched to its underscript, arrow flipped to reading direction', fa: 'همزه به‌جای پریم، حد کشیده به پهنای زیرنویس، پیکان در جهت خواندن' },
+      shows: { en: 'prime mark at the upper left, حد stretched to its underscript, arrow flipped to reading direction', fa: 'نشانهٔ پریم در بالا-چپ، حد کشیده به پهنای زیرنویس، پیکان در جهت خواندن' },
       tree: R(APP(PRIME(V('f')), V('x')), O('='), LIM(R(V('h'), O('->'), N(0)), F(R(APP(V('f'), R(V('x'), O('+'), V('h'))), O('-'), APP(V('f'), V('x'))), V('h'))))
     },
     {
       id: 'ftc', name: { en: 'Fundamental theorem of calculus', fa: 'قضیهٔ اساسی تفاضل و تکامل' },
-      shows: { en: 'تک with bounds above and below, تف as the differential token', fa: 'تک با کران‌های بالا و پایین، تف به‌عنوان نشانهٔ دیفرانسیل' },
+      shows: { en: 'تک with bounds above and below, تفا as the differential token', fa: 'تک با کران‌های بالا و پایین، تفا به‌عنوان نشانهٔ دیفرانسیل' },
       tree: R(BIG('int', V('a'), V('b'), R(APP(PRIME(V('f')), V('x')), DIFF(V('x')))), O('='), APP(V('f'), V('b')), O('-'), APP(V('f'), V('a')))
     },
     {

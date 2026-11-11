@@ -8,7 +8,7 @@ This repository holds the **Phase 1 prototype**: a dependency-free layout engine
 
 ## Why
 
-- Direction-coherent mathematics for a right-to-left script: digits, scripts, fences, big operators and matrices all follow one reading direction (framework decisions D1–D8).
+- Direction-coherent mathematics for a right-to-left script: digits, scripts, fences, big operators and matrices all follow one reading direction (framework decisions D1–D12).
 - A research instrument: the notation is a controlled manipulation of presentation with the mathematics held fixed, which makes claims about reading direction and numerical cognition (SNARC, transcoding) testable.
 - An adoption engine: Unicode encodes characters that communities already use. The editor this engine grows into is how the attestations get produced.
 
@@ -27,9 +27,11 @@ The full framework (layers L0–L7, decisions log, symbol registry, Unicode prop
 | R1.7 | Radical sign at the right, vinculum extending leftward, index at the upper right of the sign | `laySqrt` |
 | R1.8, D5 | Letter-operators `مجـ` (∑), `تک` (∫), `حد` (lim) as joined naskh tokens stretched by kashida (U+0640) to the width of their bounds | `kashida`, `layBig`, `layLim` |
 | R1.10 | Matrices with the first column at the right | `layMat` |
-| R3.3, D8 | Identifier roles: `س ص ع` for x y z, `ا ب ج` for a b c, `ن م ک` for n m k, `ت` for f; looped `ن` `م` `پ` `ز` for e, i, π, φ; tailed letters for Greek roles | `ROLES` |
+| R3.3, D8, D10 | Identifier roles: `س ص ع` for x y z, `آ ب ج` for a b c (bare `ا` is never an identifier, so it cannot be mistaken for `۱` or for an absolute-value bar), `ن م ک` for n m k, `ت` for f; looped `ن` `م` `پ` `ز` for e, i, π, φ; tailed letters for Greek roles | `ROLES` |
 | R3.4, D6 | Looped, double-struck and tailed letters are the real U+1EE00 code points (Noto Sans Math); an unencoded combination (`پ` looped) renders through a declared fallback, never a silent substitution | `layId` |
-| R3.6 | Hamza above as the prime (`تٔ`); `تف` as the differential token | `layPrime`, `layDiff` |
+| R3.6, D9 | The ordinary prime mark, unmirrored, at the upper left of its base (`ت′`, `ت″`); works on any base and any order | `layPrime` |
+| D5, D11 | `تفا` as the differential token and `تفاج` as the partial (`DIFF(v, true)`), with a thin space before them | `DIFFS`, `layDiff` |
+| R5.1, D12 | Every registered token shows at least one visible join (`دتر`, not `دت`, for det), checked by `test.js`; juxtaposed identifiers are set 0.16 em apart so a product does not read as a word | `hasVisibleJoin`, `registeredTokens`, `gap` |
 | R5.1, D7 | Classical function abbreviations (`جا جتا ظا …`) as shaped words | `NAMES` |
 
 The INTL renderer reads the same tree and produces conventional notation (math-italic letters, ∑ ∫ lim, scripts at the right), which is the bijection of L0 made visible.
@@ -54,7 +56,7 @@ const { N, V, O, R, F, SUP, SQRT } = FARTL.T;
 R(V('x'), O('='), F(R(O('-'), V('b'), O('pm'), SQRT(R(SUP(V('b'), N(2)), O('-'), N(4), V('a'), V('c')))), R(N(2), V('a'))))
 ```
 
-Node types: `num`, `id` (role + optional style), `op`, `row`, `frac`, `sup`/`sub`/`subsup`, `sqrt`, `big` (sum, int, prod with bounds), `lim`, `name`, `app`, `fence`, `mat`, `prime`, `diff`, `txt`. Identifiers carry roles, not letters; the role table decides the letter per renderer (L0.2).
+Node types: `num`, `id` (role + optional style), `op`, `row`, `frac`, `sup`/`sub`/`subsup`, `sqrt`, `big` (sum, int, prod with bounds), `lim`, `name`, `app`, `fence`, `mat`, `prime` (base + optional order), `diff` (variable + optional partial flag), `txt`. Identifiers carry roles, not letters; the role table decides the letter per renderer (L0.2).
 
 ### Engine API
 
@@ -70,7 +72,7 @@ engine.render(tree, 'ltr', { size: 30 }).svg;               // INTL
 
 ```
 npm install          # fonts only (fontsource packages)
-node test.js         # renders 22 SVGs into out/
+node test.js         # renders 22 SVGs into out/ and checks the D1, D9–D12 rules
 python3 build.py     # writes dist/index.html and dist/fonts/
 ```
 

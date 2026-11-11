@@ -19,7 +19,8 @@
   // identifier roles → FA letter / INTL letter (L3 R3.3, D8 constants)
   const ROLES = {
     x: { fa: 'س', intl: 'x' }, y: { fa: 'ص', intl: 'y' }, z: { fa: 'ع', intl: 'z' },
-    a: { fa: 'ا', intl: 'a' }, b: { fa: 'ب', intl: 'b' }, c: { fa: 'ج', intl: 'c' }, d: { fa: 'د', intl: 'd' },
+    a: { fa: 'آ', intl: 'a' },                       // D10: bare ا is never an identifier
+    b: { fa: 'ب', intl: 'b' }, c: { fa: 'ج', intl: 'c' }, d: { fa: 'د', intl: 'd' },
     n: { fa: 'ن', intl: 'n' }, m: { fa: 'م', intl: 'm' }, k: { fa: 'ک', intl: 'k' },
     i: { fa: 'ی', intl: 'i' }, j: { fa: 'ژ', intl: 'j' }, r: { fa: 'ر', intl: 'r' }, h: { fa: 'ح', intl: 'h' },
     u: { fa: 'و', intl: 'u' }, v: { fa: 'ف', intl: 'v' },
@@ -50,10 +51,29 @@
     '<=': { g: '≤', m: '≥', cls: 'rel' }, '>=': { g: '≥', m: '≤', cls: 'rel' }, '->': { g: '→', m: '←', cls: 'rel' },
     ',': { g: ',', fa: '،', cls: 'punct' }
   };
-  const NAMES = { sin: { fa: 'جا', intl: 'sin' }, cos: { fa: 'جتا', intl: 'cos' }, tan: { fa: 'ظا', intl: 'tan' }, exp: { fa: 'نما', intl: 'exp' }, log: { fa: 'لگ', intl: 'log' } };
+  const NAMES = { sin: { fa: 'جا', intl: 'sin' }, cos: { fa: 'جتا', intl: 'cos' }, tan: { fa: 'ظا', intl: 'tan' }, exp: { fa: 'نما', intl: 'exp' }, log: { fa: 'لگ', intl: 'log' }, det: { fa: 'دتر', intl: 'det' } };
+  // differential tokens (D11): the first three letters of تفاضل, plus ج from جزئی
+  const DIFFS = { d: { fa: 'تفا', intl: 'd' }, partial: { fa: 'تفاج', intl: '∂' } };
+  const LIMIT = { fa: ['ح', 'د'], intl: 'lim' };
   // letter-operators (D5, Machrek precedent): [before tatweel, after tatweel]
   const BIGOPS = { sum: { fa: ['مج', ''], intl: '∑' }, int: { fa: ['ت', 'ک'], intl: '∫' }, prod: { fa: ['ض', ''], intl: '∏' } };
   const WORDS = { for: { fa: 'برای', intl: 'for' }, if: { fa: 'اگر', intl: 'if' }, otherwise: { fa: 'در غیر این صورت', intl: 'otherwise' } };
+  // D12: every registered token must show at least one visible join, so it cannot read as a run of isolated variables
+  const NON_JOINING = 'اآأإدذرزژوؤ';   // letters that never join to the letter after them
+  const isJoinable = c => /[\u0622-\u064A\u066E-\u06D3]/.test(c) || c === 'ـ';
+  function hasVisibleJoin(tok) {
+    const cs = Array.from(tok);
+    for (let i = 0; i < cs.length - 1; i++) if (isJoinable(cs[i]) && isJoinable(cs[i + 1]) && !NON_JOINING.includes(cs[i])) return true;
+    return false;
+  }
+  function registeredTokens() {
+    const out = [];
+    Object.values(NAMES).forEach(n => out.push(n.fa));
+    Object.values(DIFFS).forEach(n => out.push(n.fa));
+    Object.values(BIGOPS).forEach(n => out.push(n.fa[0] + 'ـ' + n.fa[1]));   // letter-operators always carry a kashida
+    out.push(LIMIT.fa[0] + 'ـ' + LIMIT.fa[1]);
+    return out;
+  }
   const MIRROR = { '(': ')', ')': '(', '[': ']', ']': '[', '{': '}', '}': '{', '|': '|', '‖': '‖', '⟨': '⟩', '⟩': '⟨' };
 
   /* ---------- tree constructors ---------- */
@@ -73,8 +93,8 @@
     APP: (f, arg) => ({ t: 'app', f, arg }),
     FEN: (o, c, body) => ({ t: 'fence', o, c, body }),
     MAT: (rows, o, c) => ({ t: 'mat', rows, o: o || '[', c: c || ']' }),
-    PRIME: b => ({ t: 'prime', b }),
-    DIFF: v => ({ t: 'diff', v }),
+    PRIME: (b, k) => (k && k > 1 ? { t: 'prime', b, k } : { t: 'prime', b }),
+    DIFF: (v, partial) => (partial ? { t: 'diff', v, partial: true } : { t: 'diff', v }),
     TXT: key => ({ t: 'txt', key })
   };
 
@@ -120,6 +140,9 @@
       if (L === 'rel' || R === 'rel') return rel;
       if (L === 'txt' || R === 'txt') return 0.3;
       if (L === 'open' || R === 'close') return 0.02;
+      if (R === 'prime') return 0.02;
+      if (R === 'diff') return 0.17;                                   // thin space before a differential
+      if (S.dir === 'rtl' && L === 'id' && R === 'id') return 0.16;    // D12: juxtaposed identifiers must not read as a word
       if (L === 'fn' || L === 'op') return 0.14;
       if (L === 'close') return 0.08;
       return 0.07;
@@ -156,15 +179,15 @@
     function layId(n, S) {
       const r = ROLES[n.role]; if (!r) throw new Error('unknown role ' + n.role);
       if (r.sym) return tbox(r.fa, FT.math, S.size, { cls: 'ord' });
-      if (S.dir === 'ltr') return tbox(italicize(r.intl), FT.math, S.size, { cls: 'ord' });
+      if (S.dir === 'ltr') return tbox(italicize(r.intl), FT.math, S.size, { cls: 'id' });
       const style = n.style || r.style || 'iso';
-      if (style === 'iso') return tbox(r.fa, FT.naskh, S.size, { cls: 'ord' });
+      if (style === 'iso') return tbox(r.fa, FT.naskh, S.size, { cls: 'id' });
       const g = STYLE_TABLE[style] && STYLE_TABLE[style][r.fa];
-      if (g) return tbox(g, FT.math, S.size, { cls: 'ord' });
+      if (g) return tbox(g, FT.math, S.size, { cls: 'id' });
       // declared fallback (D6, L0.6): plain letter plus a style mark, never a silent substitution
       const b = tbox(r.fa, FT.naskh, S.size, { cls: 'ord' });
       const em = S.size, rr = em * 0.11, sw = em * 0.05;
-      const box = { w: b.w + rr * 2, a: b.a, d: Math.max(b.d, rr * 1.2), cls: 'ord' };
+      const box = { w: b.w + rr * 2, a: b.a, d: Math.max(b.d, rr * 1.2), cls: 'id' };
       box.draw = (out, x, y, S2) => {
         b.draw(out, x + rr * 2, y, S2);
         if (style === 'looped') {
@@ -230,7 +253,7 @@
       const sw = Math.max(E ? E.w : 0, U ? U.w : 0);
       const w = B.w + k + sw;
       const a = Math.max(B.a, E ? up + E.a : 0), d = Math.max(B.d, U ? down + U.d : 0);
-      const box = { w, a, d, cls: 'ord' };
+      const box = { w, a, d, cls: B.cls === 'id' ? 'id' : 'ord' };   // a scripted identifier is still an identifier
       box.draw = (out, x, y, S3) => {
         const rtl = S.dir === 'rtl';
         const bx = rtl ? x + sw + k : x, sx = rtl ? x : x + B.w + k;
@@ -322,7 +345,7 @@
     }
     function layLim(n, S) {
       const em = S.size, sub = lay(n.sub, limitState(S)), body = lay(n.body, S);
-      const sym = S.dir === 'ltr' ? tbox('lim', FT.text, em, { cls: 'op' }) : kashida('ح', 'د', sub.w, em); // حد stretched to its underscript (W3C note, Persian style)
+      const sym = S.dir === 'ltr' ? tbox(LIMIT.intl, FT.text, em, { cls: 'op' }) : kashida(LIMIT.fa[0], LIMIT.fa[1], sub.w, em); // حد stretched to its underscript (W3C note, Persian style)
       return hlist([stackLimits(sym, sub, null, S), body], S, 'inner');
     }
     function fenceBox(o, c, body, S) {
@@ -367,19 +390,16 @@
       const padded = { w: inner.w + em * 0.2, a: inner.a + em * 0.1, d: inner.d + em * 0.1, cls: 'inner', draw: (out, x, y, S3) => inner.draw(out, x + em * 0.1, y, S3) };
       return fenceBox(n.o, n.c, padded, S);
     }
-    // derivative mark: hamza above in FA-RTL (R3.6), prime in INTL
+    // derivative mark (D9): the ordinary prime, unmirrored, following the base in reading order,
+    // so it sits at the upper left in FA-RTL and the upper right in INTL; any base, any order
     function layPrime(n, S) {
-      if (S.dir === 'rtl') {
-        const r = ROLES[n.b.role];
-        return tbox(r.fa + 'ٔ', FT.naskh, S.size, { cls: 'ord' });
-      }
-      const B = lay(n.b, S), P = tbox('′', FT.math, S.size, { cls: 'ord' });
-      return hlist([B, P], S, 'ord');
+      const B = lay(n.b, S), P = tbox('′'.repeat(n.k || 1), FT.math, S.size, { cls: 'prime' });
+      return hlist([B, P], S, B.cls === 'id' ? 'id' : 'ord');
     }
     function layDiff(n, S) {
-      const v = lay(n.v, S);
-      const tok = S.dir === 'ltr' ? tbox(italicize('d'), FT.math, S.size, { cls: 'ord' }) : tbox('تف', FT.naskh, S.size, { cls: 'fn' });
-      return hlist([tok, v], S, 'ord');
+      const v = lay(n.v, S), spec = DIFFS[n.partial ? 'partial' : 'd'];
+      const tok = S.dir === 'ltr' ? tbox(n.partial ? spec.intl : italicize(spec.intl), FT.math, S.size, { cls: 'ord' }) : tbox(spec.fa, FT.naskh, S.size, { cls: 'fn' });
+      return hlist([tok, v], S, 'diff');
     }
 
     function lay(n, S) {
@@ -418,5 +438,5 @@
     return { render, lay };
   }
 
-  return { createEngine, T, ROLES, OPS, NAMES, BIGOPS, toPersianDigits, italicize };
+  return { createEngine, T, ROLES, OPS, NAMES, BIGOPS, DIFFS, LIMIT, toPersianDigits, italicize, hasVisibleJoin, registeredTokens };
 });
