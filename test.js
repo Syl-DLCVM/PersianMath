@@ -1,4 +1,6 @@
-// Node smoke test: lay out every formula in both directions with a heuristic measurer.
+// Node test: lay out every formula in both directions with a heuristic measurer, then check the rules
+// that are easy to break silently (digit order, and the D9–D12 rulings).
+const assert = require('assert');
 const FARTL = require('./src/engine.js');
 const FORMULAS = require('./src/formulas.js');
 const fs = require('fs');
@@ -28,3 +30,47 @@ for (const f of FORMULAS) {
   }
 }
 console.log('rendered', ok, 'svgs');
+
+// ---- rule checks ----
+const { N, V, O, R, FN, APP, FEN, PRIME, DIFF } = FARTL.T;
+// every <text> in an SVG as { x, s }, in drawing order
+const texts = svg => Array.from(svg.matchAll(/<text x="([\d.-]+)"[^>]*>([^<]*)<\/text>/g)).map(m => ({ x: parseFloat(m[1]), s: m[2] }));
+const rtl = t => eng.render(t, 'rtl', { size: 30 }).svg;
+const ltr = t => eng.render(t, 'ltr', { size: 30 }).svg;
+const xOf = (svg, s) => { const t = texts(svg).find(t => t.s === s); assert(t, 'missing ' + s); return t.x; };
+
+// D1 / R2.2: the most significant digit stands rightmost
+{
+  const svg = rtl(N(123));
+  assert(xOf(svg, '۱') > xOf(svg, '۲') && xOf(svg, '۲') > xOf(svg, '۳'), 'D1: digit order');
+}
+// D9: the prime is the prime mark, left of its base in FA-RTL, and hamza is gone
+{
+  const svg = rtl(PRIME(V('f')));
+  assert(!svg.includes('\u0654'), 'D9: no hamza modifier');
+  assert(xOf(svg, '′') < xOf(svg, 'ت'), 'D9: prime at the left of the base');
+  assert(rtl(PRIME(V('f'), 2)).includes('″') || rtl(PRIME(V('f'), 2)).includes('′′'), 'D9: second-order prime');
+  assert.doesNotThrow(() => rtl(PRIME(FEN('(', ')', V('x')))), 'D9: prime on a non-identifier base');
+  assert(ltr(PRIME(V('f'))).includes('′'), 'D9: INTL prime');
+}
+// D10: the alef-position identifier is آ, and no identifier role maps to bare ا
+{
+  assert(rtl(V('a')).includes('>آ<'), 'D10: a renders as آ');
+  for (const [role, r] of Object.entries(FARTL.ROLES)) assert(r.fa !== 'ا', 'D10: role ' + role + ' maps to bare alef');
+}
+// D11: differential tokens
+{
+  assert(rtl(DIFF(V('x'))).includes('>تفا<'), 'D11: d is تفا');
+  assert(rtl(DIFF(V('x'), true)).includes('>تفاج<'), 'D11: partial is تفاج');
+  assert(ltr(DIFF(V('x'), true)).includes('∂'), 'D11: INTL partial');
+}
+// D12: every registered token shows a visible join; juxtaposed identifiers get the thin space
+{
+  assert(FARTL.hasVisibleJoin('جتا') && !FARTL.hasVisibleJoin('دت') && FARTL.hasVisibleJoin('دتر'), 'D12: join test');
+  for (const tok of FARTL.registeredTokens()) assert(FARTL.hasVisibleJoin(tok), 'D12: token without a visible join: ' + tok);
+  assert(rtl(APP(FN('det'), V('a'))).includes('>دتر<'), 'D12: det token');
+  const w = t => eng.render(t, 'rtl', { size: 30 }).w;
+  const pair = w(R(V('b'), V('c'))), single = w(V('b')) + w(V('c')) - 30;   // each render pads by size/2 on both sides
+  assert(Math.abs((pair - single) - 0.16 * 30) < 0.01, 'D12: identifier gap is 0.16 em, got ' + (pair - single) / 30);
+}
+console.log('rule checks passed');
